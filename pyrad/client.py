@@ -63,6 +63,13 @@ class Client(host.Host):
         self._CloseSocket()
         self._SocketOpen()
         self._socket.bind(addr)
+        self._SocketPrepare()
+
+    def _SocketPrepare(self):
+        self._poll = select.poll()
+        self._poll.register(self._socket.fileno(), select.POLLIN | \
+                                                    select.POLLERR | \
+                                                    select.POLLPRI)
 
     def _SocketOpen(self):
         if not self._socket:
@@ -70,6 +77,7 @@ class Client(host.Host):
                                        socket.SOCK_DGRAM)
             self._socket.setsockopt(socket.SOL_SOCKET,
                                     socket.SO_REUSEADDR, 1)
+            self._SocketPrepare()
 
     def _CloseSocket(self):
         if self._socket:
@@ -126,13 +134,11 @@ class Client(host.Host):
             waitto = now + self.timeout
 
             while now < waitto:
-                ready = select.select([self._socket], [], [],
-                                    (waitto - now))
-
-                if ready[0]:
-                    rawreply = self._socket.recv(4096)
-                else:
-                    now = time.time()
+                for (fd, event) in self._poll.poll():                               
+                    if event == select.POLLIN:
+                        rawreply = self._socket.recv(4096)
+                        break
+                    now = time.time()                                           
                     continue
 
                 try:
