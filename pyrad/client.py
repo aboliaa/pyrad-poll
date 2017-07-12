@@ -132,21 +132,23 @@ class Client(host.Host):
 
             now = time.time()
             waitto = now + self.timeout
+            noreply = None
 
             while now < waitto:
-                for (fd, event) in self._poll.poll():                               
+                for (fd, event) in self._poll.poll((waitto-now)):                               
                     if event == select.POLLIN:
                         rawreply = self._socket.recv(4096)
                         break
                     now = time.time()                                           
                     continue
 
-                try:
-                    reply = pkt.CreateReply(packet=rawreply)
-                    if pkt.VerifyReply(reply, rawreply):
-                        return reply
-                except packet.PacketError:
-                    pass
+                if rawreply is not None:
+                    try:
+                        reply = pkt.CreateReply(packet=rawreply)
+                        if pkt.VerifyReply(reply, rawreply):
+                            return reply
+                    except packet.PacketError:
+                        pass
 
                 now = time.time()
 
