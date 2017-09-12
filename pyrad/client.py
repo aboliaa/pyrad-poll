@@ -132,7 +132,7 @@ class Client(host.Host):
 
             now = time.time()
             waitto = now + self.timeout
-            noreply = None
+            noreply = rawreply = None
 
             while now < waitto:
                 for (fd, event) in self._poll.poll((waitto-now)):                               
